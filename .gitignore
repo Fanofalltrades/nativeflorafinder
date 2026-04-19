@@ -1,0 +1,6 @@
+.DS_Store
+*.pyc
+__pycache__/
+species_data_partial.json
+.env
+node_modules/

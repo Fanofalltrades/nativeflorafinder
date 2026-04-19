@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Native Plant Finder - Fairfield, CT</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0b0d11;--surface:#141720;--card:#1b1f2b;
+  --border:#272d3d;--border-light:#333a4d;
+  --text:#e4e6ed;--text-secondary:#b0b4c3;--muted:#737991;
+  --accent:#5b8def;--accent-dim:rgba(91,141,239,0.12);
+  --endangered:#df4f4f;--endangered-dim:rgba(223,79,79,0.08);
+  --threatened:#d4943a;--threatened-dim:rgba(212,148,58,0.08);
+  --special:#4faa4f;--special-dim:rgba(79,170,79,0.08);
+  --extirpated:#a855c7;--extirpated-dim:rgba(168,85,199,0.08);
+  --federal:#e95580;--federal-dim:rgba(233,85,128,0.08);
+  --rank-secure:#3a8;--rank-vulnerable:#da3;--rank-imperiled:#d55;
+}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+button{font-family:inherit}
+
+/* Header */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 28px}
+.header-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.header h1{font-size:1.3rem;font-weight:700;letter-spacing:-0.02em}
+.header h1 span{color:var(--accent)}
+.header .loc{color:var(--muted);font-size:0.78rem;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.header .loc b{color:var(--text-secondary);font-weight:500}
+.dot{color:var(--border-light)}
+
+/* Stats */
+.stats{display:flex;padding:0 28px;background:var(--surface);border-bottom:1px solid var(--border)}
+.stats .wrap{max-width:1400px;margin:0 auto;display:flex;width:100%;overflow-x:auto}
+.stat{flex:1;min-width:90px;padding:12px 14px;text-align:center;position:relative}
+.stat::after{content:'';position:absolute;right:0;top:20%;height:60%;width:1px;background:var(--border)}
+.stat:last-child::after{display:none}
+.stat .num{font-size:1.4rem;font-weight:700;display:block;letter-spacing:-0.03em}
+.stat .lbl{font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-top:1px}
+.stat.s-total .num{color:var(--accent)}
+.stat.s-e .num{color:var(--endangered)}
+.stat.s-t .num{color:var(--threatened)}
+.stat.s-sc .num{color:var(--special)}
+.stat.s-ext .num{color:var(--extirpated)}
+
+/* Controls */
+.controls{padding:10px 28px;position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border)}
+.controls-inner{max-width:1400px;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.search{flex:1;min-width:200px;padding:8px 14px 8px 34px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:0.82rem;outline:none;transition:border-color 0.15s}
+.search:focus{border-color:var(--accent)}
+.search-wrap{flex:1;min-width:200px;position:relative}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.filters{display:flex;gap:5px;flex-wrap:wrap}
+.fbtn{padding:5px 11px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:0.72rem;font-weight:500;transition:all 0.12s;white-space:nowrap}
+.fbtn:hover{border-color:var(--text-secondary);color:var(--text-secondary)}
+.fbtn.on{color:#fff}
+.fbtn.on[data-f="all"]{background:var(--accent);border-color:var(--accent)}
+.fbtn.on[data-f="E"]{background:var(--endangered);border-color:var(--endangered)}
+.fbtn.on[data-f="T"]{background:var(--threatened);border-color:var(--threatened)}
+.fbtn.on[data-f="SC"]{background:var(--special);border-color:var(--special)}
+.fbtn.on[data-f="ext"]{background:var(--extirpated);border-color:var(--extirpated)}
+.fbtn.on[data-f="fed"]{background:var(--federal);border-color:var(--federal)}
+.sort-sel{padding:5px 8px;border-radius:5px;border:1px solid var(--border);background:var(--card);color:var(--text-secondary);font-size:0.72rem;outline:none;cursor:pointer}
+
+.results-info{padding:5px 28px;font-size:0.72rem;color:var(--muted);max-width:1456px;margin:0 auto}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;padding:10px 28px 40px;max-width:1456px;margin:0 auto}
+
+/* Card */
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color 0.15s,box-shadow 0.15s;cursor:pointer;display:flex;flex-direction:column;position:relative}
+.card:hover{border-color:var(--accent);box-shadow:0 4px 24px rgba(91,141,239,0.08)}
+.card-status-bar{position:absolute;top:0;left:0;width:3px;height:100%;border-radius:10px 0 0 10px;z-index:2}
+.card-status-bar.E{background:var(--endangered)}
+.card-status-bar.T{background:var(--threatened)}
+.card-status-bar.SC{background:var(--special)}
+
+.card-img{min-height:120px;max-height:300px;background:#0e1018;position:relative;overflow:hidden}
+.card-img img{width:100%;height:auto;display:block;transition:transform 0.3s}
+.card:hover .card-img img{transform:scale(1.02)}
+.card-img .no-img{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:0.75rem}
+.card-img .family-tag{position:absolute;bottom:0;right:0;background:rgba(0,0,0,0.65);color:var(--text-secondary);padding:3px 10px;border-radius:8px 0 0 0;font-size:0.62rem;backdrop-filter:blur(6px);letter-spacing:0.02em}
+.card-img .img-grad{position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,rgba(0,0,0,0.3))}
+.card-img .expand-btn{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);border:none;color:#fff;width:26px;height:26px;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;backdrop-filter:blur(4px)}
+.card:hover .card-img .expand-btn{opacity:1}
+.card-img .expand-btn:hover{background:rgba(0,0,0,0.8)}
+
+/* Lightbox */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:300;justify-content:center;align-items:center;cursor:zoom-out;backdrop-filter:blur(6px)}
+.lightbox.open{display:flex}
+.lightbox img{max-width:92vw;max-height:92vh;object-fit:contain;border-radius:6px;box-shadow:0 8px 40px rgba(0,0,0,0.5)}
+.lightbox .lb-info{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:var(--text-secondary);padding:6px 16px;border-radius:6px;font-size:0.75rem;text-align:center;backdrop-filter:blur(4px);max-width:90vw}
+.lightbox .lb-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center;transition:background 0.12s}
+.lightbox .lb-close:hover{background:rgba(255,255,255,0.2)}
+
+.card-body{padding:12px 14px 14px;flex:1;display:flex;flex-direction:column;gap:5px}
+.card .common{font-weight:600;font-size:0.9rem;line-height:1.3}
+.card .common .note{color:var(--muted);font-weight:400;font-size:0.72rem}
+.card .sci{color:var(--muted);font-style:italic;font-size:0.76rem}
+.card .badges-row{display:flex;gap:5px;flex-wrap:wrap;margin:2px 0}
+.card .desc{color:var(--text-secondary);font-size:0.74rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:1px}
+.card .meta{display:flex;gap:10px;margin-top:auto;padding-top:6px;border-top:1px solid var(--border);flex-wrap:wrap;align-items:center}
+.card .meta-item{font-size:0.68rem;color:var(--muted);display:flex;align-items:center;gap:3px}
+.card .meta-item b{color:var(--text-secondary);font-weight:600}
+.card .meta-item svg{opacity:0.5}
+
+/* Badges */
+.badge{padding:2px 7px;border-radius:3px;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap}
+.badge.E{background:var(--endangered-dim);color:var(--endangered)}
+.badge.T{background:var(--threatened-dim);color:var(--threatened)}
+.badge.SC{background:var(--special-dim);color:var(--special)}
+.badge.ext{background:var(--extirpated-dim);color:var(--extirpated)}
+.badge.fed{background:var(--federal-dim);color:var(--federal)}
+
+/* Rank indicator */
+.rank{display:inline-flex;align-items:center;gap:2px;font-size:0.65rem;font-weight:600;padding:1px 5px;border-radius:3px}
+.rank.secure{color:var(--rank-secure);background:rgba(51,170,136,0.1)}
+.rank.vulnerable{color:var(--rank-vulnerable);background:rgba(221,170,51,0.1)}
+.rank.imperiled{color:var(--rank-imperiled);background:rgba(221,85,85,0.1)}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;justify-content:center;align-items:flex-start;padding:40px 20px;overflow-y:auto;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:680px;width:100%;position:relative;overflow:hidden;animation:modalIn 0.2s ease-out}
+@keyframes modalIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.modal-close{position:absolute;top:12px;right:12px;z-index:5;background:rgba(0,0,0,0.55);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);transition:background 0.12s}
+.modal-close:hover{background:rgba(0,0,0,0.8)}
+.modal-img{width:100%;max-height:50vh;object-fit:contain;display:block;cursor:zoom-in;transition:opacity 0.12s;background:#0a0c10}
+.modal-img:hover{opacity:0.9}
+.modal-body{padding:18px 22px 22px}
+.modal-body h2{font-size:1.15rem;font-weight:700;margin-bottom:2px;line-height:1.3}
+.modal-body .m-sci{color:var(--muted);font-style:italic;font-size:0.85rem;margin-bottom:10px}
+.modal-body .m-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.modal-body .m-badges .badge{font-size:0.65rem;padding:3px 9px}
+.modal-body .m-desc{color:var(--text-secondary);font-size:0.83rem;line-height:1.65;margin-bottom:16px}
+.modal-body .m-section{margin-bottom:16px}
+.modal-body .m-section h3{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;font-weight:600}
+.modal-body .m-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.modal-body .m-field{background:var(--card);border-radius:7px;padding:9px 11px}
+.modal-body .m-field .m-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:1px}
+.modal-body .m-field .m-value{font-size:0.82rem;font-weight:500}
+.modal-body .m-links{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.modal-body .m-links a{font-size:0.75rem;padding:5px 12px;border-radius:5px;border:1px solid var(--border);color:var(--accent);transition:all 0.12s}
+.modal-body .m-links a:hover{background:var(--accent-dim);border-color:var(--accent);text-decoration:none}
+.m-attr{font-size:0.6rem;color:var(--muted);margin-top:8px;font-style:italic}
+
+.empty{text-align:center;padding:80px 28px;color:var(--muted)}
+.footer{text-align:center;padding:18px 28px;color:var(--muted);font-size:0.65rem;border-top:1px solid var(--border);max-width:1400px;margin:0 auto}
+.footer a{color:var(--text-secondary)}
+
+@media(max-width:500px){
+  .grid{grid-template-columns:1fr}
+  .header-inner{flex-direction:column;align-items:flex-start}
+  .modal-body .m-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="header"><div class="header-inner">
+  <div>
+    <h1><span>Native Plant Finder</span></h1>
+    <div class="loc">
+      <b>Fairfield, CT 06824</b>
+      <span class="dot">/</span> USDA Zone 7a
+      <span class="dot">/</span> Southern New England Coastal
+      <span class="dot">/</span> Long Island Sound Watershed
+    </div>
+  </div>
+  <div class="loc" style="font-size:0.65rem">
+    Data: Wikipedia, iNaturalist, NatureServe, GBIF, Go Botany
+  </div>
+</div></div>
+
+<div class="stats"><div class="wrap">
+  <div class="stat s-total"><span class="num" id="s-total">-</span><span class="lbl">Listed Species</span></div>
+  <div class="stat s-e"><span class="num" id="s-e">-</span><span class="lbl">Endangered</span></div>
+  <div class="stat s-t"><span class="num" id="s-t">-</span><span class="lbl">Threatened</span></div>
+  <div class="stat s-sc"><span class="num" id="s-sc">-</span><span class="lbl">Special Concern</span></div>
+  <div class="stat s-ext"><span class="num" id="s-ext">-</span><span class="lbl">Extirpated</span></div>
+</div></div>
+
+<div class="controls"><div class="controls-inner">
+  <div class="search-wrap">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input class="search" id="search" type="text" placeholder="Search by common name, scientific name, or family...">
+  </div>
+  <div class="filters">
+    <button class="fbtn on" data-f="all">All</button>
+    <button class="fbtn" data-f="E">Endangered</button>
+    <button class="fbtn" data-f="T">Threatened</button>
+    <button class="fbtn" data-f="SC">Special Concern</button>
+    <button class="fbtn" data-f="ext">Extirpated</button>
+    <button class="fbtn" data-f="fed">Federal</button>
+  </div>
+  <select class="sort-sel" id="sort">
+    <option value="obs">Sort: Most Observed</option>
+    <option value="name">Sort: Name A-Z</option>
+    <option value="name-desc">Sort: Name Z-A</option>
+    <option value="status">Sort: Status</option>
+    <option value="family">Sort: Family</option>
+    <option value="rank">Sort: Rarity (CT)</option>
+  </select>
+</div></div>
+
+<div class="results-info" id="results-info"></div>
+<div class="grid" id="grid"></div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lb-close">&times;</button>
+  <img id="lb-img" src="" alt="">
+  <div class="lb-info" id="lb-info"></div>
+</div>
+
+<div class="footer">
+  <div style="margin-bottom:8px">
+    This tool is free and ad-free. If it helped you find a native plant,
+    <a href="https://buymeacoffee.com/" target="_blank" style="color:var(--accent);font-weight:500">buy me a coffee</a>.
+  </div>
+  CT DEEP Endangered, Threatened &amp; Special Concern Species (eff. Aug 5, 2015)
+  &middot; Conservation ranks: <a href="https://explorer.natureserve.org" target="_blank">NatureServe</a>
+  &middot; Photos: <a href="https://www.wikipedia.org" target="_blank">Wikipedia</a>, <a href="https://www.inaturalist.org" target="_blank">iNaturalist</a>, <a href="https://gobotany.nativeplanttrust.org" target="_blank">Go Botany</a>
+  &middot; Taxonomy: <a href="https://www.gbif.org" target="_blank">GBIF</a>
+</div>
+
+<script src="species_data_compact.js"></script>
+<script>
+const SL = {E:"Endangered",T:"Threatened",SC:"Special Concern"};
+const STATUS_ORDER = {E:0,T:1,SC:2};
+const RANK_INFO = {
+  S1:{label:"Critically Imperiled",short:"Critically Rare in CT",cls:"imperiled"},
+  S2:{label:"Imperiled",short:"Very Rare in CT",cls:"imperiled"},
+  S3:{label:"Vulnerable",short:"Uncommon in CT",cls:"vulnerable"},
+  S4:{label:"Apparently Secure",short:"Secure in CT",cls:"secure"},
+  S5:{label:"Secure",short:"Common in CT",cls:"secure"},
+  SH:{label:"Historical",short:"Possibly Gone from CT",cls:"imperiled"},
+  SX:{label:"Extirpated",short:"Gone from CT",cls:"imperiled"},
+  SNR:{label:"Not Ranked",short:"",cls:""},
+  SNA:{label:"Not Applicable",short:"",cls:""},
+  G1:{label:"Critically Imperiled Globally",short:"Critically Rare Worldwide",cls:"imperiled"},
+  G2:{label:"Imperiled Globally",short:"Very Rare Worldwide",cls:"imperiled"},
+  G3:{label:"Vulnerable Globally",short:"Uncommon Worldwide",cls:"vulnerable"},
+  G4:{label:"Apparently Secure Globally",short:"",cls:"secure"},
+  G5:{label:"Secure Globally",short:"",cls:"secure"},
+};
+
+let filter = "all", query = "", sortBy = "obs";
+
+function rankClass(r) { return (RANK_INFO[r]||{}).cls||""; }
+function rankLabel(r) { return (RANK_INFO[r]||{}).label||r; }
+
+function updateStats() {
+  document.getElementById("s-total").textContent = PLANTS.length;
+  document.getElementById("s-e").textContent = PLANTS.filter(p=>p.s==="E").length;
+  document.getElementById("s-t").textContent = PLANTS.filter(p=>p.s==="T").length;
+  document.getElementById("s-sc").textContent = PLANTS.filter(p=>p.s==="SC").length;
+  document.getElementById("s-ext").textContent = PLANTS.filter(p=>p.ext).length;
+}
+
+function getFiltered() {
+  let list = PLANTS.filter(p => {
+    if (filter === "ext") return p.ext;
+    if (filter === "fed") return p.fed;
+    if (filter !== "all" && p.s !== filter) return false;
+    return true;
+  });
+  if (query) {
+    const q = query.toLowerCase();
+    list = list.filter(p =>
+      p.c.toLowerCase().includes(q) ||
+      p.sci.toLowerCase().includes(q) ||
+      (p.fam||"").toLowerCase().includes(q) ||
+      (p.n||"").toLowerCase().includes(q)
+    );
+  }
+  list.sort((a,b) => {
+    switch(sortBy) {
+      case "name": return a.c.localeCompare(b.c);
+      case "name-desc": return b.c.localeCompare(a.c);
+      case "status": return (STATUS_ORDER[a.s]??9)-(STATUS_ORDER[b.s]??9) || a.c.localeCompare(b.c);
+      case "family": return (a.fam||"").localeCompare(b.fam||"") || a.c.localeCompare(b.c);
+      case "obs": return (b.obs||0)-(a.obs||0);
+      case "rank": {
+        const ra = parseInt((a.sr||"S9").slice(1)), rb = parseInt((b.sr||"S9").slice(1));
+        return ra-rb || a.c.localeCompare(b.c);
+      }
+      default: return 0;
+    }
+  });
+  return list;
+}
+
+function obsIcon() {
+  return `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+}
+
+function cardHTML(p, idx) {
+  let badges = `<span class="badge ${p.s}">${SL[p.s]}</span>`;
+  if (p.ext) badges += `<span class="badge ext">Extirpated</span>`;
+  if (p.fed === "E") badges += `<span class="badge fed">Fed. Endangered</span>`;
+  if (p.fed === "T") badges += `<span class="badge fed">Fed. Threatened</span>`;
+
+  const expandSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`;
+
+  const imgEl = p.img
+    ? `<img src="${p.img}" alt="${p.c}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=no-img>No image</div>'">`
+    : `<div class="no-img">No image available</div>`;
+
+  const note = p.n ? ` <span class="note">${p.n}</span>` : "";
+  const desc = p.desc ? `<div class="desc">${p.desc}</div>` : "";
+
+  let meta = "";
+  // Show CT rarity as readable text, skip if unremarkable (S4/S5) or missing
+  const sri = RANK_INFO[p.sr];
+  if (sri && sri.short) meta += `<span class="meta-item"><span class="rank ${sri.cls}">${sri.short}</span></span>`;
+  // Show global rank only if imperiled globally (G1-G3) — G4/G5 isn't notable
+  const gri = RANK_INFO[p.gr];
+  if (gri && gri.short) meta += `<span class="meta-item"><span class="rank ${gri.cls}">${gri.short}</span></span>`;
+  if (p.obs) meta += `<span class="meta-item">${obsIcon()} <b>${p.obs.toLocaleString()}</b></span>`;
+  if (p.fam) meta += `<span class="meta-item" style="margin-left:auto;opacity:0.6">${p.fam}</span>`;
+
+  const expandBtn = p.img ? `<button class="expand-btn" onclick="event.stopPropagation();openLightbox('${p.img.replace(/'/g,"\\'")}','${p.c.replace(/'/g,"\\'")}','${p.sci.replace(/'/g,"\\'")}')" title="View full size">${expandSvg}</button>` : "";
+
+  return `<div class="card" onclick="openModal(${idx})">
+    <div class="card-status-bar ${p.s}"></div>
+    <div class="card-img">
+      ${imgEl}
+      ${expandBtn}
+      <div class="img-grad"></div>
+    </div>
+    <div class="card-body">
+      <div class="common">${p.c}${note}</div>
+      <div class="sci">${p.sci}</div>
+      <div class="badges-row">${badges}</div>
+      ${desc}
+      <div class="meta">${meta}</div>
+    </div>
+  </div>`;
+}
+
+function render() {
+  const list = getFiltered();
+  document.getElementById("results-info").textContent = `Showing ${list.length} of ${PLANTS.length} species`;
+  const grid = document.getElementById("grid");
+  if (!list.length) {
+    grid.innerHTML = '<div class="empty">No species match your filters.</div>';
+    return;
+  }
+  window._filtered = list;
+  grid.innerHTML = list.map((p,i) => cardHTML(p,i)).join("");
+}
+
+function openModal(idx) {
+  const p = window._filtered[idx];
+  if (!p) return;
+
+  let badges = `<span class="badge ${p.s}">${SL[p.s]}</span>`;
+  if (p.ext) badges += `<span class="badge ext">Believed Extirpated</span>`;
+  if (p.fed === "E") badges += `<span class="badge fed">Federally Endangered</span>`;
+  if (p.fed === "T") badges += `<span class="badge fed">Federally Threatened</span>`;
+
+  let fields = "";
+
+  if (p.sr || p.gr) {
+    fields += `<div class="m-section"><h3>Conservation Status</h3><div class="m-grid">`;
+    if (p.sr) {
+      const si = RANK_INFO[p.sr]||{};
+      fields += `<div class="m-field"><div class="m-label">Connecticut Status</div><div class="m-value"><span class="rank ${si.cls||''}">${si.label||p.sr}</span> <span style="color:var(--muted);font-size:0.7rem">(${p.sr})</span></div></div>`;
+    }
+    if (p.gr) {
+      const gi = RANK_INFO[p.gr]||{};
+      fields += `<div class="m-field"><div class="m-label">Global Status</div><div class="m-value"><span class="rank ${gi.cls||''}">${gi.label||p.gr}</span> <span style="color:var(--muted);font-size:0.7rem">(${p.gr})</span></div></div>`;
+    }
+    fields += `</div></div>`;
+  }
+
+  if (p.fam || p.ord || p.cls) {
+    fields += `<div class="m-section"><h3>Taxonomy</h3><div class="m-grid">`;
+    if (p.fam) fields += `<div class="m-field"><div class="m-label">Family</div><div class="m-value">${p.fam}</div></div>`;
+    if (p.ord) fields += `<div class="m-field"><div class="m-label">Order</div><div class="m-value">${p.ord}</div></div>`;
+    if (p.cls) fields += `<div class="m-field"><div class="m-label">Class</div><div class="m-value">${p.cls}</div></div>`;
+    if (p.obs) fields += `<div class="m-field"><div class="m-label">iNaturalist Observations</div><div class="m-value">${p.obs.toLocaleString()}</div></div>`;
+    fields += `</div></div>`;
+  }
+
+  if (p.care) {
+    fields += `<div class="m-section"><h3>Care Guide</h3><div class="m-grid">`;
+    if (p.care.water) fields += `<div class="m-field"><div class="m-label">Watering</div><div class="m-value">${p.care.water}</div></div>`;
+    if (p.care.sun) fields += `<div class="m-field"><div class="m-label">Sunlight</div><div class="m-value">${p.care.sun.join(", ")}</div></div>`;
+    if (p.care.soil) fields += `<div class="m-field"><div class="m-label">Soil</div><div class="m-value">${p.care.soil.join(", ")}</div></div>`;
+    if (p.care.cycle) fields += `<div class="m-field"><div class="m-label">Lifecycle</div><div class="m-value">${p.care.cycle}</div></div>`;
+    if (p.care.growth) fields += `<div class="m-field"><div class="m-label">Growth Rate</div><div class="m-value">${p.care.growth}</div></div>`;
+    if (p.care.zone) fields += `<div class="m-field"><div class="m-label">Hardiness</div><div class="m-value">Zones ${p.care.zone.min}-${p.care.zone.max}</div></div>`;
+    if (p.care.attracts) fields += `<div class="m-field"><div class="m-label">Attracts</div><div class="m-value">${p.care.attracts.join(", ")}</div></div>`;
+    if (p.care.prop) fields += `<div class="m-field"><div class="m-label">Propagation</div><div class="m-value">${p.care.prop.slice(0,3).join(", ")}</div></div>`;
+    fields += `</div></div>`;
+  }
+
+  let links = "";
+  if (p.wiki) links += `<a href="${p.wiki}" target="_blank">Wikipedia</a>`;
+  if (p.inat) links += `<a href="https://www.inaturalist.org/taxa/${p.inat}" target="_blank">iNaturalist</a>`;
+  links += `<a href="https://explorer.natureserve.org/Search?q=${encodeURIComponent(p.sci)}" target="_blank">NatureServe</a>`;
+  links += `<a href="https://www.gbif.org/species/search?q=${encodeURIComponent(p.sci)}" target="_blank">GBIF</a>`;
+  links += `<a href="https://gobotany.nativeplanttrust.org/search/?q=${encodeURIComponent(p.sci.split(' ').slice(0,2).join(' '))}" target="_blank">Go Botany</a>`;
+
+  const imgSrc = p.img || "";
+  const note = p.n ? ` <span style="color:var(--muted);font-weight:400;font-size:0.82rem">${p.n}</span>` : "";
+
+  document.getElementById("modal").innerHTML = `
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    ${imgSrc ? `<img class="modal-img" src="${imgSrc}" alt="${p.c}">` : ""}
+    <div class="modal-body">
+      <h2>${p.c}${note}</h2>
+      <div class="m-sci">${p.sci}</div>
+      <div class="m-badges">${badges}</div>
+      ${p.desc ? `<div class="m-desc">${p.desc}</div>` : ""}
+      ${fields}
+      <div class="m-links">${links}</div>
+      ${p.attr ? `<div class="m-attr">Photo: ${p.attr}</div>` : ""}
+    </div>`;
+
+  window._currentModalPlant = p;
+  document.getElementById("modal-overlay").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal() {
+  document.getElementById("modal-overlay").classList.remove("open");
+  document.body.style.overflow = "";
+}
+
+document.getElementById("modal-overlay").addEventListener("click", e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+document.getElementById("search").addEventListener("input", e => { query = e.target.value; render(); });
+document.getElementById("sort").addEventListener("change", e => { sortBy = e.target.value; render(); });
+
+document.querySelectorAll(".fbtn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".fbtn").forEach(b => b.classList.remove("on"));
+    btn.classList.add("on");
+    filter = btn.dataset.f;
+    render();
+  });
+});
+
+// Lightbox
+function openLightbox(src, common, sci) {
+  // Use higher-res version if available
+  let hiRes = src;
+  // Wikipedia thumbnails: replace /thumb/.../330px-... with full res
+  if (src.includes('/thumb/') && src.includes('px-')) {
+    hiRes = src.replace(/\/thumb\//, '/').replace(/\/\d+px-[^/]+$/, '');
+  }
+  // iNaturalist: swap medium for large
+  if (src.includes('inaturalist') && src.includes('/medium.')) {
+    hiRes = src.replace('/medium.', '/large.');
+  }
+  document.getElementById('lb-img').src = hiRes;
+  document.getElementById('lb-info').textContent = `${common} - ${sci}`;
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lb-img').src = '';
+  if (!document.getElementById('modal-overlay').classList.contains('open')) {
+    document.body.style.overflow = '';
+  }
+}
+
+document.getElementById('lightbox').addEventListener('click', e => {
+  if (e.target !== document.getElementById('lb-img')) closeLightbox();
+});
+document.querySelector('.lb-close').addEventListener('click', closeLightbox);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('lightbox').classList.contains('open')) {
+    e.stopImmediatePropagation();
+    closeLightbox();
+  }
+}, true);
+
+// Also make modal image clickable for lightbox
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target.classList.contains('modal-img')) {
+    const p = window._currentModalPlant;
+    if (p) openLightbox(p.img, p.c, p.sci);
+  }
+});
+
+updateStats();
+render();
+</script>
+</body>
+</html>
